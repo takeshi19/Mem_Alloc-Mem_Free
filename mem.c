@@ -70,7 +70,6 @@ blk_hdr *first_blk = NULL;
  * Tips: Be careful with pointer arithmetic 
  */
 void* Mem_Alloc(int size) {                      
-	//FIXME What if the size is larger than what is requested??
 	if (size <= 0)        //If user requests invalid amount of memory, return null.
 		return NULL;  
 	size += 4; 	      //Always add 4 bytes for header to requested size.
@@ -88,58 +87,34 @@ void* Mem_Alloc(int size) {
 			size += (multiple - size); 
 		}
 	}
-	printf("Size of request + pad + head: ");
-	printf("%d\n", size);	
+	//printf("Size of request + pad + head: ");
+	//printf("%d\n", size);	
+	
 	//**Traversing heap to find best-fitting block to allocate for requested size**
 	blk_hdr* memptr = first_blk;	//memptr now points to same address as first_blk.
-	//FIXME We set best = to the start of block9 (from OG Call, that was alloc'd), but never change it
-		//when currsize <= prevsize... so we have a 9 pointer here, and then never change it when we 
-			//have a free block being larger than the size. WHEN WE HAVE A FREE BLOCK LARGER THAN
-				//THE SIZE. CODE THAT (CATS > DOGS).
-	blk_hdr* best = memptr;		//best points to the potential best-fitting block.
+	blk_hdr* best = memptr; 
 	while ((memptr->size_status) != 1) { 
-		int curr = memptr->size_status; //Reinit curr to the next block's size.
-		int currsize = curr - (curr & 3);
-		
-		//printf("%d\n", curr);
-		//printf("%d\n", currsize);
-		if ((curr & 1) == 0) {   	//If the block is free then we can choose optimal fit.
-			//best = memptr;	//FIXME bad logic. 	
-			//int prevsize = best->size_status - (best->size_status & 3);
-			if (currsize == size) { //If we have an exact fit, break loop and allocate best block.
-				best = memptr;
+		int curr = memptr->size_status;   //Reinit curr to the next block's size.
+		int currsize = curr - (curr & 3); //The size of every traversed block.
+		if ((curr & 1) == 0 && currsize >= size) {  //If the block is free then we can choose optimal fit.
+			if (currsize == size) {  //If we have an exact fit, break loop and allocate best block.
+				best = memptr; 	 //best points to the potential best-fitting block.
 				break;
 			}
-			/*if (currsize > size) { //FIXME also bad logic.
-				//best = memptr;  //TEmp dogz
-				if (currsize <= prevsize)
-					best = memptr; //Reassign cats life.
-			}*/
-			//**Two cases for when we can have a best block.**
-			if (currsize > size) 
-				best = memptr;
-			if (currsize > size && currsize <= prevsize) 
-				best = memptr;
-			//if (currsize > size) { //If block is free and large enough, point to it.	
-			//int prevsize = best->size_status - (best->size_status & 3);
-				//printf("%d\n", prevsize);
-			//if (currsize <= prevsize) //2nd run: if 4080 < 8. DNR!!!
-			//	best = memptr; //best is now updated to the next optimal block in heap.
-			 //FIXME maybe just currsize < prevsize... 	
+			if (currsize <= best->size_status - (best->size_status & 3))
+				best = memptr;		//Found new best-fit block.	
 		}
-		//FIXME what about b4 we go2 next block we set prevsize to prev/curr block, and then next block is 
-			//incremented/pointed to.
-		int prevsize = best->size_status - (best->size_status & 3);
 		memptr = (blk_hdr*)((char*)(memptr) + currsize); //Go to next block.
+		if ((best->size_status & 1) != 0)  
+			best = memptr; //If first block best points to is alloc'd, move it w/memptr. 
 	}
-	printf("%d\n", best->size_status);
-	//FIXME dogs < cats and also we may be returning the incorrect size_stat. We should have a big enuff block
-		//to alloc (4088 - 8 = 4080) for a 16 byte request. 
+
+	//printf("%d\n", best->size_status);
 	if ((best->size_status) < size) //If no block of required size found, return NULL.
 		return NULL; 
 	
 	int bestsize = best->size_status - (best->size_status & 3); //Actual size of found available block. 
-	printf("%d\n", bestsize); 	//SHOULD BE 8
+//	printf("%d\n", bestsize); 	//SHOULD BE 8
 	//**Allocating the block of best fit recently found.**
 	blk_hdr *pload = (blk_hdr*)((char*)(best) + 4); //Pointer to start of payload of alloc'd block.
 	if ((bestsize - size) >= 8) {	     //Split if there will be enough free space for a 2nd block.
@@ -153,7 +128,6 @@ void* Mem_Alloc(int size) {
 		freeFtr = (blk_hdr*)((char*)(freeFtr) + (bestsize-4));		
 		freeFtr->size_status = bestsize - size;		//Update free block footer.
 	}
-		//TODO FIXME are we calling free() function below to free our current pointers? Or nah? 
 
 	return (void *)pload;
 }

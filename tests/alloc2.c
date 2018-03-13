@@ -8,8 +8,8 @@ int main() {
    assert(Mem_Alloc(4) != NULL);
 	//TODO testing separately 2c which 1 fucks up. 
    assert(Mem_Alloc(8) != NULL);
-  // assert(Mem_Alloc(16) != NULL);
-   //assert(Mem_Alloc(24) != NULL);
+   assert(Mem_Alloc(16) != NULL);
+   assert(Mem_Alloc(24) != NULL);
 	Mem_Dump();
    exit(0);
 }
