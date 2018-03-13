@@ -16,6 +16,6 @@ int main() {
     for (int i = 0; i < 4; i++) {
         assert(((int)ptr[i]) % 8 == 0);
     }
-
+	Mem_Dump();
     exit(0);
 }

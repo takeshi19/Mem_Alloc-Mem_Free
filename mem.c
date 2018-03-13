@@ -87,15 +87,13 @@ void* Mem_Alloc(int size) {
 			size += (multiple - size); 
 		}
 	}
-	//printf("Size of request + pad + head: ");
-	//printf("%d\n", size);	
 	
 	//**Traversing heap to find best-fitting block to allocate for requested size**
-	blk_hdr* memptr = first_blk;	//memptr now points to same address as first_blk.
+	blk_hdr* memptr = first_blk;		 //memptr points to start of payload of 1st block.
 	blk_hdr* best = memptr; 
-	while ((memptr->size_status) != 1) { 
-		int curr = memptr->size_status;   //Reinit curr to the next block's size.
-		int currsize = curr - (curr & 3); //The size of every traversed block.
+	while (memptr->size_status != 1) { 
+		int curr = memptr->size_status;  //Reinit curr to the next block's size.
+		int currsize = curr - (curr & 3);//The size of every traversed block.
 		if ((curr & 1) == 0 && currsize >= size) {  //If the block is free then we can choose optimal fit.
 			if (currsize == size) {  //If we have an exact fit, break loop and allocate best block.
 				best = memptr; 	 //best points to the potential best-fitting block.
@@ -106,15 +104,14 @@ void* Mem_Alloc(int size) {
 		}
 		memptr = (blk_hdr*)((char*)(memptr) + currsize); //Go to next block.
 		if ((best->size_status & 1) != 0)  
-			best = memptr; //If first block best points to is alloc'd, move it w/memptr. 
+			best = memptr;  //If first block best points to is alloc'd, move it w/memptr. 
 	}
 
-	//printf("%d\n", best->size_status);
 	if ((best->size_status) < size) //If no block of required size found, return NULL.
 		return NULL; 
 	
 	int bestsize = best->size_status - (best->size_status & 3); //Actual size of found available block. 
-//	printf("%d\n", bestsize); 	//SHOULD BE 8
+	
 	//**Allocating the block of best fit recently found.**
 	blk_hdr *pload = (blk_hdr*)((char*)(best) + 4); //Pointer to start of payload of alloc'd block.
 	if ((bestsize - size) >= 8) {	     //Split if there will be enough free space for a 2nd block.
@@ -144,9 +141,38 @@ void* Mem_Alloc(int size) {
  * - Coalesce if one or both of the immediate neighbours are free 
  */
 int Mem_Free(void *ptr) {                        
-    // Your code goes in here 
-    return -1;
+	if (ptr == NULL)	   //Cannot free null pointer.
+		return -1;
+	if (((int)ptr) % 8 != 0)   //Need an 8-byte aligned pointer.
+		return -1;
+	//TODO what is our success case and what how to check for out of bounds of heap.
+	
+	blk_hdr *freeme = (blk_hdr *)ptr; //Casting ptr to blk_hdr to access its header. 
+	
+	freeme->size_status -= 1;  //Maring the block as free.
+	
+	//**Coalescing free blocks in heap.**
+	blk_hdr *memptr = first_blk;  //Pointer to the start of heap.
+	blk_hdr *prevptr = memptr;    //Pointer to header of coalesced block.
+	blk_hdr *nextptr = memptr;    //Pointer to footer of coalesced block.
+	//TODO what do we move the ptrs by??
+	while (memptr->size_status != 1) {
+		if (memptr == freeme) { //If pointing to block to free, check adjacent blocks.
+			switch (freeme->size_status & 3) {
+				case 0: //Previous block is free, coalesce them.
+					//Look at paper. TODO also check if next block free.
+					break; //**Make sure to break after making header and footer here.
+				case 2: //Previous block is alloc'd, check if next block free.
+					//Look at paper (case for ONLY next block free).
+					//TODO 
+			}
+			break; //When done coalescing, end loop. **MAy cause bugs**
+		}
+	}
+	
+	return 0;
 }
+
 
 /*
  * Function used to initialize the memory allocator

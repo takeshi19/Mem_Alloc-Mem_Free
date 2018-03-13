@@ -1,4 +1,4 @@
- alloc             : a simple 8 byte allocation
+1  alloc             : a simple 8 byte allocation
 2  alloc_nospace     : allocation is too big to fit in available space
 3  writeable         : write to a chunk from Mem_Alloc and check the value
 4  align             : first pointer returned is 8-byte aligned
