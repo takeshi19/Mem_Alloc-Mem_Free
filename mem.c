@@ -162,14 +162,13 @@ int Mem_Free(void *ptr) {
 			prevptr = (blk_hdr*)((char*)(prevptr) - 4 - footer->size_status);
 			prevptr->size_status += freeme->size_status + 2; //+2 signifies prev is busy, curr free.  
 			//**Check if next block is free.**
-			nextptr = freeme;
+			nextptr = freeme; 
 			nextptr = (blk_hdr*)((char*)(nextptr) + (freeme->size_status)-4);
-			if ((nextptr->size_status & 1) == 0) {
+			if ((nextptr->size_status & 1) == 0) { //If next block is free, sum up total sizes in footer.
 				nextptr = (blk_hdr*)((char*)(nextptr) + (nextptr->size_status)-4);
-				nextptr->size_status = 
+				nextptr->size_status += prevptr->size_status - (prevptr->size_status & 2);
 			}
-				
-				//move nextptr to make footer, also add sizes
+		
 		case 2: //Previous block is alloc'd, check if next block free.
 			//Look at paper (case for ONLY next block free).
 				//MAKE SURE TO +PTRS WITH - (..&3) 
