@@ -148,28 +148,37 @@ int Mem_Free(void *ptr) {
 	//TODO what is our success case and what how to check for out of bounds of heap.
 	
 	blk_hdr *freeme = (blk_hdr *)ptr; //Casting ptr to blk_hdr to access its header. 
-	
-	freeme->size_status -= 1;  //Maring the block as free.
+	freeme = (blk_hdr*)((char*)(freeme) - 4); 
+	freeme->size_status -= 1;  	  //Declaring the block as free.
 	
 	//**Coalescing free blocks in heap.**
-	blk_hdr *memptr = first_blk;  //Pointer to the start of heap.
-	blk_hdr *prevptr = memptr;    //Pointer to header of coalesced block.
-	blk_hdr *nextptr = memptr;    //Pointer to footer of coalesced block.
-	//TODO what do we move the ptrs by??
-	while (memptr->size_status != 1) {
-		if (memptr == freeme) { //If pointing to block to free, check adjacent blocks.
-			switch (freeme->size_status & 3) {
-				case 0: //Previous block is free, coalesce them.
-					//Look at paper. TODO also check if next block free.
-					break; //**Make sure to break after making header and footer here.
-				case 2: //Previous block is alloc'd, check if next block free.
-					//Look at paper (case for ONLY next block free).
-					//TODO 
+	blk_hdr *prevptr = first_blk;    //Pointer to block before freeme block.
+	blk_hdr *nextptr = first_blk;    //Pointer to block after freeme block.
+	freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
+	switch (freeme->size_status & 3) {
+		case 0: //Previous block is free, coalesce with freeme.
+			prevptr = freeme; 
+			blk_hdr *footer = (blk_hdr*)((char*)(prevptr) - 8); //TODO Bugslife
+			prevptr = (blk_hdr*)((char*)(prevptr) - 4 - footer->size_status);
+			prevptr->size_status += freeme->size_status + 2; //+2 signifies prev is busy, curr free.  
+			//**Check if next block is free.**
+			nextptr = freeme;
+			nextptr = (blk_hdr*)((char*)(nextptr) + (freeme->size_status)-4);
+			if ((nextptr->size_status & 1) == 0) {
+				nextptr = (blk_hdr*)((char*)(nextptr) + (nextptr->size_status)-4);
+				nextptr->size_status = 
 			}
-			break; //When done coalescing, end loop. **MAy cause bugs**
-		}
+				
+				//move nextptr to make footer, also add sizes
+		case 2: //Previous block is alloc'd, check if next block free.
+			//Look at paper (case for ONLY next block free).
+				//MAKE SURE TO +PTRS WITH - (..&3) 
 	}
-	
+			//break; //End loop regardless of if blocks coalesced or not.
+	//TODO failure case: What if the user wants to free 4000+ bytes of memory, and we only have 3999?
+	 	//So this means?
+	if (prevptr->size_status < freeme->size_status) 
+		return -1;	
 	return 0;
 }
 
