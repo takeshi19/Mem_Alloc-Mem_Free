@@ -145,12 +145,12 @@ int Mem_Free(void *ptr) {
 		return -1;
 	if (((int)ptr) % 8 != 0)   //Need an 8-byte aligned pointer.
 		return -1;
-	//TODO what is our success case and what how to check for out of bounds of heap.
 	
+	//TODO what is our success case and what how to check for out of bounds of heap.
 	blk_hdr *freeme = (blk_hdr *)ptr; //Casting ptr to blk_hdr to access its header. 
 	freeme = (blk_hdr*)((char*)(freeme) - 4); 
 	freeme->size_status -= 1;  	  //Declaring the block as free.
-	
+
 	//**Coalescing free blocks in heap.**
 	blk_hdr *prevptr = first_blk;    //Pointer to block before freeme block.
 	blk_hdr *nextptr = first_blk;    //Pointer to block after freeme block.
@@ -158,24 +158,25 @@ int Mem_Free(void *ptr) {
 	switch (freeme->size_status & 3) {
 		case 0: //Previous block is free, coalesce with freeme.
 			prevptr = freeme; 
-			blk_hdr *footer = (blk_hdr*)((char*)(prevptr) - 8); //TODO Bugslife
-			prevptr = (blk_hdr*)((char*)(prevptr) - 4 - footer->size_status);
-			prevptr->size_status += freeme->size_status + 2; //+2 signifies prev is busy, curr free.  
+			blk_hdr *footer = (blk_hdr*)((char*)(prevptr) - 8); //Going to footer of prev-blk.
+			prevptr = (blk_hdr*)((char*)(prevptr) - 4 - footer->size_status);//Start of prev-blk
+			prevptr->size_status += freeme->size_status + 2;    //+2 signifies prev is busy, curr free.  
 			//**Check if next block is free.**
-			nextptr = freeme; 
+			nextptr = freeme; 				    //Go to header of next blk.
 			nextptr = (blk_hdr*)((char*)(nextptr) + (freeme->size_status)-4);
+			
 			if ((nextptr->size_status & 1) == 0) { //If next block is free, sum up total sizes in footer.
 				nextptr = (blk_hdr*)((char*)(nextptr) + (nextptr->size_status)-4);
-				nextptr->size_status += prevptr->size_status - (prevptr->size_status & 2);
+				nextptr->size_status += prevptr->size_status - (prevptr->size_status & 3);
 			}
-		
+			break;//TODO prob don't need this.	
 		case 2: //Previous block is alloc'd, check if next block free.
-			//Look at paper (case for ONLY next block free).
-				//MAKE SURE TO +PTRS WITH - (..&3) 
+			nextptr = freeme;
+					
 	}
-			//break; //End loop regardless of if blocks coalesced or not.
 	//TODO failure case: What if the user wants to free 4000+ bytes of memory, and we only have 3999?
 	 	//So this means?
+	//FIXME this failure case is dog shit bcit only tests 1 case (prev blok free).
 	if (prevptr->size_status < freeme->size_status) 
 		return -1;	
 	return 0;
