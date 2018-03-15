@@ -9,13 +9,13 @@ int main() {
 
    ptr[0] = Mem_Alloc(4);
    ptr[1] = Mem_Alloc(8);
-   assert(Mem_Free(ptr[0]) == 0);
-   assert(Mem_Free(ptr[1]) == 0);
+   assert(Mem_Free(ptr[0]) == 0); //Should free successfully
+   assert(Mem_Free(ptr[1]) == 0); //Should free successfully
 
-   ptr[2] = Mem_Alloc(16);
+   ptr[2] = Mem_Alloc(16);	  //SHould also free successfully.
    ptr[3] = Mem_Alloc(4);
    assert(Mem_Free(ptr[2]) == 0);
    assert(Mem_Free(ptr[3]) == 0);
-
+	Mem_Dump();
    exit(0);
 }
