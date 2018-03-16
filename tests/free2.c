@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "mem.h"
+#include <stdio.h>
 
 int main() {
    assert(Mem_Init(4096) == 0);
@@ -14,9 +15,12 @@ int main() {
  	//Also good: freeing any size works, so nothing hardcoded...  
    assert(Mem_Free(ptr[1]) == 0); //Should free successfully
 	//FIXME why does freeing again cause buglife? 
-   ptr[2] = Mem_Alloc(16);	  //SHould also free successfully.
+//  Mem_Dump();
+	 ptr[2] = Mem_Alloc(16);	  //SHould also free successfully.
   ptr[3] = Mem_Alloc(4);
+	printf("End of ptr3 malloc\n");
   assert(Mem_Free(ptr[2]) == 0);
+	printf("end of ptr3 malloc and free\n");	
   assert(Mem_Free(ptr[3]) == 0);
   Mem_Dump();
    exit(0);

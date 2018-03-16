@@ -73,6 +73,7 @@ void* Mem_Alloc(int size) {
 	if (size <= 0)        //If user requests invalid amount of memory, return null.
 		return NULL;  
 	size += 4; 	      //Always add 4 bytes for header to requested size.
+
 	//**Padding**
 	if (size % 8 != 0) {  //If size isn't multiple of 8, round it to closest multiple.
    		int difference; 
@@ -105,23 +106,16 @@ void* Mem_Alloc(int size) {
 		if ((best->size_status & 1) != 0)  
 			best = memptr;  //If first block best points to is alloc'd, move it w/memptr. 
 	}
-	printf("%s", "Size (in malloc): ");
-	printf("%d\n", size);
 	
 	int bestsize = best->size_status - (best->size_status & 3); //Actual size of found available block. 
-	printf("%s", "Best available size: ");
-	printf("%d\n", best->size_status);
-	if (bestsize < size) {
-		printf("best size < size\n");
+	if (bestsize < size) 
 		return NULL;
-	}	
+	
 	//**Allocating the block of best fit recently found.**
 	blk_hdr *pload = (blk_hdr*)((char*)(best) + 4); //Pointer to start of payload of alloc'd block.
 	if ((bestsize - size) >= 8) {	     //Split if there will be enough free space for a 2nd block.
-		printf("Ab2 update header\n");
 		best->size_status = size + (best->size_status & 3) + 1;
 		
-		printf("Just updated header +1 of best block\n");
 		blk_hdr *freeHdr = (blk_hdr*)((char*)(best) + size);  //Move pointer to free block. 
 		freeHdr->size_status = (bestsize-size) + 2;     //Update free block header.
 			
@@ -129,12 +123,7 @@ void* Mem_Alloc(int size) {
 		freeFtr->size_status = bestsize - size;		//Update free block footer.
 	}
 	else { //If we cannot split, update header accordingly.
-		printf("Ab2 update header\n");
-		//TODO does it make sense to 
-		//best->size_status = size + (best->size_status & 3) + 1;
 		best->size_status += 1;
-		printf("Just updated hdr +1 of best block- no split\n");
-	//	blk_hdr *nextblk = best;
 		blk_hdr * nextblk = (blk_hdr*)((char*)(best) + bestsize);
 		nextblk->size_status += 2; //Update header of next block.
 	}	
@@ -162,75 +151,87 @@ int Mem_Free(void *ptr) {
 		printf("Y mod8 errors\n");  //Need an 8-byte aligned pointer.
 		return -1;
 	}
-	//If ptr to free isn't within bounds of heap, impossible to free.
-	//TODO find a quicker/optimized way for bounds checking.
-/*	int detect = 0;
-	blk_hdr *detector = first_blk;
-	while (detector->size_status != 1) {
-		printf("DGOSS\n");
-		int curr = detector->size_status;  //Reinit curr to the next block's size.
-		int currsize = curr - (curr & 3);
-		if (detector == ptr) { //FIXME buggers here.  
-			detect = 1;
-			break;
-		}
-		detector = (blk_hdr*)((char*)(detector) + currsize);
+	blk_hdr *freeme = (blk_hdr *)ptr; //Casting ptr to blk_hdr to access its header.
+	//TODO out  of bounds case 2 
+	if (freeme < first_blk) { //If out of bounds: Before heap.
+		printf("Out of bounds for < start of heap\n"); 
+		return -1;
 	}
-	if (detect == 0) { 
-		printf("on the level\n");
+	//If ptr is already freed, return -1.
+	/*if ((freeme->size_status & 1) == 0) {
+		printf("Already freed, cannot refree, returning -1\n");
 		return -1;
 	}*/
-	printf("Before pointers in memfree\n");	
-	blk_hdr *freeme = (blk_hdr *)ptr; //Casting ptr to blk_hdr to access its header. 
-	freeme = (blk_hdr*)((char*)(freeme) - 4); 
+
+	blk_hdr *newfoot = freeme;	  
+	freeme = (blk_hdr*)((char*)(freeme) - 4);  //Going to header.
 	freeme->size_status -= 1;  	  //Declaring the block as free.
-	printf("Afer pointers in memfree\n");
+	
+	//**Making a footer for newly freed block.**
+	int freePayload = freeme->size_status - (freeme->size_status & 3);
+	newfoot = (blk_hdr*)((char*)(newfoot) + freePayload - 4);
+	newfoot->size_status = freePayload;	
 
 	//**Coalescing free blocks in heap.**
-	blk_hdr *prevblk = first_blk;     //Pointer to block before freeme block.
-	blk_hdr *nextblk = first_blk;     //Pointer to block after freeme block.
-	freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
 	printf("Rite b4 the switch stmt\n");
 	switch (freeme->size_status & 3) {
 		case 0: //Previous block is free, coalesce with freeme.
-			prevblk = freeme; 
+			freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
+			blk_hdr *prevblk = freeme; 
 			
 			printf("In case0, so prev block is free\n");
 			printf("\n\n");
+			
 			blk_hdr *footer = (blk_hdr*)((char*)(prevblk) - 8); //Going to footer of prev-blk.
 			printf("Just accessed footer's value in prevblok successfully\n");
-			prevblk = (blk_hdr*)((char*)(prevblk) - footer->size_status + 4);//Start of prev-blk
-	
-			prevblk->size_status += freeme->size_status + 2;    //Prev blk is busy, curr is free.  
+			
+			prevblk = (blk_hdr*)((char*)(prevblk) - (footer->size_status)-4);//Start of prev-blk
+			printf("Just moved our prevblk ptr to start of prevblk\n");
+			
+			prevblk->size_status += freePayload - (prevblk->size_status&3) + 2;    //Prev blk is busy, curr is free.  
 			//**Check if next block is free.**
 			printf("Checking if nxt blk is also free\n");
 			
-			nextblk = freeme; 				    //Go to header of next blk.
+			blk_hdr *nextblk = freeme; 				    //Go to header of next blk.
 			printf("Going 2 header of nextblk\n");
-			nextblk = (blk_hdr*)((char*)(nextblk) + (freeme->size_status)-4);
+			//**Going to header of next block.**
+			nextblk = (blk_hdr*)((char*)(nextblk) + freePayload-4);
 			printf("Just went to header of next blk\n");
-			//If next block is free, sum up total sizes in footer.
+			//TODO update the next(nextblk) size tag bits in header after this stuff...
+			//TODO what about updating the prev block header if we have a successful nextblk coalescing??
+			//**Update nextblk header, check if it's free.**
+			nextblk->size_status -= 2; 
 			if ((nextblk->size_status & 1) == 0) { 
 				printf("getting the footer of nxt blk\n");
 				nextblk = (blk_hdr*)((char*)(nextblk) + (nextblk->size_status)-4);
 				nextblk->size_status += prevblk->size_status - (prevblk->size_status & 3);
-				printf("just changed the size-status of footer\n"); 
+				printf("just changed the size-status of footer\n");
+				//**Updating header of coalesced blk.**
+				prevblk->size_status = nextblk->size_status + 2; 
 			}
 			printf("----------------------------------\n");
 			break;
 		case 2: //Previous block is alloc'd, check if next block free.
-			nextblk = freeme;
-			nextblk = (blk_hdr*)((char*)(nextblk) + (freeme->size_status)-4);
+			//TODO check for prev bits...
+			freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
+			blk_hdr *newnext = (blk_hdr*)((char*)(freeme) + (freeme->size_status)-4);
+			newnext->size_status -= 2; //The previous blk is free.
 			printf("In case2, so prev block is busy\n");	
-			if ((nextblk->size_status & 1) == 0) { 
-				nextblk = (blk_hdr*)((char*)(nextblk) + (nextblk->size_status)-4);
-				nextblk->size_status += freeme->size_status - (freeme->size_status & 3);
+			//TODO bugs here fix pleez
+			if ((newnext->size_status & 1) == 0) { 
+				printf("In start of if block\n");
+				newnext = (blk_hdr*)((char*)(newnext) + (newnext->size_status)-4);
+				printf("Ummm\n");
+				newnext->size_status += freeme->size_status - (freeme->size_status & 3);
 				//Updating bigger size of freeme header.
+				printf("Just changed the footer in case2 when next/curr is free\n");
 				freeme = (blk_hdr*)((char*)(freeme) - 4);
-				freeme->size_status = nextblk->size_status + 2; 
+				printf("DId we get bug after going to header again???\n");
+				freeme->size_status = newnext->size_status + 2; 
+				printf("At end of if condition in case2\n");
 			}
+			break;
 	}
-	//not within the range of memory allocated by Mem_Init()not within the range of memory allocated by Mem_Init()
 	return 0;	//If coalescing works &/or we freed pointer by request, return 0.
 }
 
