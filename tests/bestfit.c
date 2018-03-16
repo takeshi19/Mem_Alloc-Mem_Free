@@ -39,9 +39,9 @@ int main() {
    assert(Mem_Free(ptr[3]) == 0);
    assert(Mem_Free(ptr[5]) == 0);
    assert(Mem_Free(ptr[7]) == 0);
-
+	
    test = Mem_Alloc(50);
-   assert(
+	assert(
            (
              ((unsigned long int)test >= (unsigned long int)ptr[3])
              &&
@@ -54,5 +54,6 @@ int main() {
              ((unsigned long int)test < (unsigned long int)ptr[2])
            )
          );
-   exit(0);
+   Mem_Dump();
+	exit(0);
 }

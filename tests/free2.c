@@ -14,7 +14,6 @@ int main() {
 	//GOOD: we free 1 block successfully.
  	//Also good: freeing any size works, so nothing hardcoded...  
    assert(Mem_Free(ptr[1]) == 0); //Should free successfully
-	//FIXME why does freeing again cause buglife? 
 //  Mem_Dump();
 	 ptr[2] = Mem_Alloc(16);	  //SHould also free successfully.
   ptr[3] = Mem_Alloc(4);

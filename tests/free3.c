@@ -39,6 +39,6 @@ int main() {
    assert(Mem_Free(ptr[7]) == 0);
    assert(Mem_Free(ptr[8]) == 0);
    assert(Mem_Free(ptr[6]) == 0);
-
+	Mem_Dump();
    exit(0);
 }

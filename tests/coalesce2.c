@@ -27,6 +27,6 @@ int main() {
 
    ptr[2] = Mem_Alloc(1600);
    assert(ptr[2] != NULL);
-
+	Mem_Dump();
    exit(0);
 }
