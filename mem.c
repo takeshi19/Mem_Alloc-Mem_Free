@@ -73,7 +73,6 @@ void* Mem_Alloc(int size) {
 	if (size <= 0)        //If user requests invalid amount of memory, return null.
 		return NULL;  
 	size += 4; 	      //Always add 4 bytes for header to requested size.
-	//FIXME MUST UPDATE TAG BITS ACCORDINGLY********	
 	//**Padding**
 	if (size % 8 != 0) {  //If size isn't multiple of 8, round it to closest multiple.
    		int difference; 
@@ -108,34 +107,38 @@ void* Mem_Alloc(int size) {
 	}
 	printf("%s", "Size (in malloc): ");
 	printf("%d\n", size);
-	printf("%s", "Best available size: ");
-	printf("%d\n", best->size_status);
-	//REMember: we were ALlocatTing fREEe blox
-	if ((best->size_status & 3) == ___)
-		//add 3
-	if ((best->size_sttus & 3) == ___)
-
-	if ((best->size_status) < size) {//If no block of required size found, return NULL.
-		printf("Holy shit we may fail\n");
-		return NULL; 
-	}
 	
 	int bestsize = best->size_status - (best->size_status & 3); //Actual size of found available block. 
-	
+	printf("%s", "Best available size: ");
+	printf("%d\n", best->size_status);
+	if (bestsize < size) {
+		printf("best size < size\n");
+		return NULL;
+	}	
 	//**Allocating the block of best fit recently found.**
 	blk_hdr *pload = (blk_hdr*)((char*)(best) + 4); //Pointer to start of payload of alloc'd block.
 	if ((bestsize - size) >= 8) {	     //Split if there will be enough free space for a 2nd block.
-		blk_hdr *freeHdr = best;     //A pointer to get to free portion of block. 
-		best->size_status = size + 1; 			//Update alloc'd block header.
+		printf("Ab2 update header\n");
+		best->size_status = size + (best->size_status & 3) + 1;
 		
-		freeHdr = (blk_hdr*)((char*)(freeHdr) + size);  //Move pointer to free block. 
+		printf("Just updated header +1 of best block\n");
+		blk_hdr *freeHdr = (blk_hdr*)((char*)(best) + size);  //Move pointer to free block. 
 		freeHdr->size_status = (bestsize-size) + 2;     //Update free block header.
-		
-		blk_hdr *freeFtr = best;     //A pointer to get to footer of free block.
-		freeFtr = (blk_hdr*)((char*)(freeFtr) + (bestsize-4));		
+			
+		blk_hdr* freeFtr = (blk_hdr*)((char*)(best) + (bestsize-4));		
 		freeFtr->size_status = bestsize - size;		//Update free block footer.
 	}
-
+	else { //If we cannot split, update header accordingly.
+		printf("Ab2 update header\n");
+		//TODO does it make sense to 
+		//best->size_status = size + (best->size_status & 3) + 1;
+		best->size_status += 1;
+		printf("Just updated hdr +1 of best block- no split\n");
+	//	blk_hdr *nextblk = best;
+		blk_hdr * nextblk = (blk_hdr*)((char*)(best) + bestsize);
+		nextblk->size_status += 2; //Update header of next block.
+	}	
+	
 	return (void *)pload;
 }
 
@@ -151,7 +154,7 @@ void* Mem_Alloc(int size) {
  * - Coalesce if one or both of the immediate neighbours are free 
  */
 int Mem_Free(void *ptr) {                        
-	if (ptr == 0 || ptr == NULL || !ptr) {
+	if (!ptr) {
 		printf("Pointer = null\n");	   //Cannot free null pointer.
 		return -1;
 	}

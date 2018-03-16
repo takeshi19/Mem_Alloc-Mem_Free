@@ -6,7 +6,8 @@
 int main() {
    assert(Mem_Init(4096) == 0);
    assert(Mem_Alloc(4) != NULL);
-	//TODO testing separately 2c which 1 fucks up. 
+	//TODO testing separately 2c which 1 fucks up.
+   Mem_Dump(); 
    assert(Mem_Alloc(8) != NULL);
    assert(Mem_Alloc(16) != NULL);
    assert(Mem_Alloc(24) != NULL);

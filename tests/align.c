@@ -12,6 +12,6 @@ int main() {
    assert(((int)ptr) % 8 == 0); 
 	printf("%08x\n", (unsigned int)(ptr));	
   
-//Mem_Dump();
+Mem_Dump();
    exit(0);
 }

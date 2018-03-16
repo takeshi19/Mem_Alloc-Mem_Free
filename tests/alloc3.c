@@ -14,5 +14,6 @@ int main() {
    assert(Mem_Alloc(9) != NULL);
    assert(Mem_Alloc(33) != NULL);
    assert(Mem_Alloc(55) != NULL);
+	Mem_Dump();
    exit(0);
 }
