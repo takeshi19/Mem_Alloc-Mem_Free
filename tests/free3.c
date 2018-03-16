@@ -14,7 +14,6 @@ int main() {
    assert(ptr[1] != NULL);
    assert(ptr[2] != NULL);
    assert(ptr[3] != NULL);
-   //TODO comment out shit that DNW
    assert(Mem_Free(ptr[1]) == 0); //Free 16-No coalesce
    assert(Mem_Free(ptr[0]) == 0); //Free 8 - coalesce with free 16, get 24
    assert(Mem_Free(ptr[3]) == 0); //Free 16- coalesce with nothing (not adjacent).

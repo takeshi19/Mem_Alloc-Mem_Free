@@ -13,12 +13,15 @@ int main() {
    assert(Mem_Free(ptr[0]) == 0); //Should free 8 bytes. 16 free still.
 	//GOOD: we free 1 block successfully.
  	//Also good: freeing any size works, so nothing hardcoded...  
+  Mem_Dump();
    assert(Mem_Free(ptr[1]) == 0); //Should free successfully
-//  Mem_Dump();
+  Mem_Dump();
 	 ptr[2] = Mem_Alloc(16);	  //SHould also free successfully.
   ptr[3] = Mem_Alloc(4);
+  Mem_Dump();
 	printf("End of ptr3 malloc\n");
   assert(Mem_Free(ptr[2]) == 0);
+  Mem_Dump();
 	printf("end of ptr3 malloc and free\n");	
   assert(Mem_Free(ptr[3]) == 0);
   Mem_Dump();

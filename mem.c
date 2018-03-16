@@ -70,13 +70,13 @@ blk_hdr *first_blk = NULL;
  * Tips: Be careful with pointer arithmetic 
  */
 void* Mem_Alloc(int size) {                      
-	if (size <= 0)        //If user requests invalid amount of memory, return null.
+	if (size <= 0) //Request of invalid amount of memory, return null.
 		return NULL;  
-	size += 4; 	      //Always add 4 bytes for header to requested size.
+	size += 4;     //Add 4 bytes for header to requested size.
 
 	//**Padding**
-	if (size % 8 != 0) {  //If size isn't multiple of 8, round it to closest multiple.
-   		int difference; 
+	if (size % 8 != 0) {  
+  		int difference; 
 		if (size < 8) { //size is less than 8. 
 			difference = 8 - size;
 			size += difference;
@@ -145,17 +145,12 @@ void* Mem_Alloc(int size) {
  */
 int Mem_Free(void *ptr) {                        
 	//**If either ptr is null or ptr isn't multiple 8, return -1.**
-	if (!ptr/* || ((int)ptr) % 8 != 0*/) {
-		printf("Null pointer returned to free\n");
+	if (!ptr || ((int)ptr) % 8 != 0) 
 		return -1;
-	}
-	if ((((int)ptr) % 8) != 0) {
-		printf("not rounded to 8 ptr in memfree\n");
-		return -1;
-	}
 	//**Casting ptr to blk_hdr to access its header.**
-	blk_hdr *freeme = (blk_hdr *)ptr; 
-	if (freeme < first_blk)  {//Before heap/out of bounds, return -1.
+	blk_hdr *freeme = (blk_hdr *)ptr;
+	//**If ptr is before heap/out of bounds, return -1. 
+	if (freeme < first_blk)  { //Before heap/out of bounds, return -1.
 		printf("Out of bounds leftwise in memfree\n");
 		return -1;
 	}
@@ -163,10 +158,9 @@ int Mem_Free(void *ptr) {
 	freeme = (blk_hdr*)((char*)(freeme) - 4); //Going to header.
 	
 	//**If ptr is already freed, return -1.**
-	if ((freeme->size_status & 1) == 0) {
-		printf("Already freed, cannot refree, returning -1\n");
+	if ((freeme->size_status & 1) == 0) 
 		return -1;
-	}
+	
 	blk_hdr *newfoot = freeme;	  
 	freeme->size_status -= 1;  	  //Declaring the block as free.
 	
@@ -178,13 +172,21 @@ int Mem_Free(void *ptr) {
 	//**Coalescing free blocks in heap.**
 	switch (freeme->size_status & 3) {
 		case 0: //Previous block is free, coalesce with freeme.
-			freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
+			freeme = (blk_hdr*)((char*)(freeme) + 4); 
+			
 			//**Move to footer of previous block (free).**
 			blk_hdr *prevblk = (blk_hdr*)((char*)(freeme) - 8); 
 			blk_hdr *footer = prevblk; 
 			prevblk = (blk_hdr*)((char*)(prevblk) - (footer->size_status)+4);
+			
 			//**Updating header after coalescing.**
-			prevblk->size_status = freePayload + footer->size_status + 2;    
+			footer = (blk_hdr*)((char*)(footer) + 4);
+			prevblk->size_status += freePayload;
+			
+			//**Making/updating footer of newly coalesced block.**
+			footer = (blk_hdr*)((char*)(footer) + freePayload-4);
+			footer->size_status = prevblk->size_status - (prevblk->size_status&3);
+			
 			//**Going to header of next block.**
 			blk_hdr *nextblk = freeme; 				    
 			nextblk = (blk_hdr*)((char*)(nextblk) + freePayload-4);
@@ -192,30 +194,38 @@ int Mem_Free(void *ptr) {
 			//**Update nextblk header, check if it's free.**
 			nextblk->size_status -= 2; 
 			if ((nextblk->size_status & 1) == 0) { 
+				//**Go to footer of next block and update it.**
 				nextblk = (blk_hdr*)((char*)(nextblk) + (nextblk->size_status)-4);
-				nextblk->size_status += prevblk->size_status - (prevblk->size_status & 3);
+				nextblk->size_status += footer->size_status;
 				//**Updating header of coalesced blk.**
-				prevblk->size_status = nextblk->size_status + 2; 
+				prevblk->size_status = nextblk->size_status + (prevblk->size_status&3); 
 			}
 			break;
 		case 2: //Previous block is alloc'd, check if next block free.
-			freeme = (blk_hdr*)((char*)(freeme) + 4); //Move pointer back to start of payload.
+			freeme = (blk_hdr*)((char*)(freeme) + 4); 
+			//**Go to header of next block.**
 			blk_hdr *newnext = (blk_hdr*)((char*)(freeme) + freePayload - 4);
 			
-			//**Update next blk header, check if next is free.**
+			//**Making footer for current-free block.**
+			blk_hdr *currhead = (blk_hdr*)((char*)(freeme) + freePayload - 8);
+			currhead->size_status = freePayload;
+
 			newnext->size_status -= 2; //The previous blk is free.
+			//**Check if next is free.**
 			if ((newnext->size_status & 1) == 0) { 
 				//**Accessing header of free next block.**
 				newnext = (blk_hdr*)((char*)(newnext) + (newnext->size_status)-4);
 				newnext->size_status += freePayload; 
-				
+			
 				//**Updating bigger size of freeme header.**
 				freeme = (blk_hdr*)((char*)(freeme) - 4);
-				freeme->size_status = newnext->size_status + 2; 
+				freeme->size_status = newnext->size_status + (freeme->size_status&3); 
 			}
 			break;
 	}
-	return 0;	//If coalescing works &/or we freed pointer by request, return 0.
+	
+	//**If coalescing works &/or we freed pointer by request, return 0.**
+	return 0;
 }
 
 
